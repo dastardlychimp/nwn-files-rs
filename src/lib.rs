@@ -10,7 +10,7 @@ pub use bif::parse as parse_bif;
 
 pub use ssf::parser::SsfFile;
 pub use ssf::writer::SsfBuilder;
-pub use x2da::parser::parse;
+pub use x2da::parser::parse as parse_x2da;
 pub use x2da::writer::X2daBuilder;
 pub use erf::writer::ErfFileBuilder;
 pub use key::{BifFile, BifResource};
@@ -44,3 +44,4 @@ pub fn parse_tlk<P: AsRef<Path>>(file_path: P) -> Result<TlkFile, types::Error> 
     let mut r = BufReader::new(f);
     tlk::parser::parse(&mut r)
 }
+
