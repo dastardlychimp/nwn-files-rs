@@ -6,6 +6,7 @@ use std::fs::File;
 use std::io;
 use io::prelude::*;
 use io::BufWriter;
+use std::mem;
 use crate::helpers::date;
 use crate::types::{
     Resource,
@@ -32,8 +33,8 @@ impl ErfFileBuilder {
         }
     }
 
-    pub fn add_description(mut self, language_id: LanguageId, text: String)
-        -> Self
+    pub fn add_description(&mut self, language_id: LanguageId, text: String)
+        -> &mut Self
     {
         self.descriptions.push(erf_file_parts::Description {
             language_id: language_id,
@@ -42,21 +43,21 @@ impl ErfFileBuilder {
         self
     }
 
-    pub fn add_resource(mut self, resource: Resource)
-        -> Self
+    pub fn add_resource(&mut self, resource: Resource)
+        -> &mut Self
     {
         self.resources.push(resource);
         self
     }
 
-    pub fn add_resources(mut self, resources: &mut Vec<Resource>)
-        -> Self
+    pub fn add_resources(&mut self, resources: &mut Vec<Resource>)
+        -> &mut Self
     {
         self.resources.append(resources);
         self
     }
     
-    pub fn write<P: AsRef<Path>>(self, file_path: P, file_type: FileType)
+    pub fn write<P: AsRef<Path>>(&mut self, file_path: P, file_type: FileType)
         -> Result<(), MyError>
     {
         let file_path = file_path.as_ref();
@@ -75,7 +76,8 @@ impl ErfFileBuilder {
             return Err(MyError::InvalidFileTypeForErf(file_type));
         }
 
-        let ErfFileBuilder {resources, descriptions} = self;
+        let descriptions = mem::replace(&mut self.descriptions, Vec::new());
+        let resources = mem::replace(&mut self.resources, Vec::new());
         
         let entry_count = resources.len();
         let description_count = descriptions.len();
