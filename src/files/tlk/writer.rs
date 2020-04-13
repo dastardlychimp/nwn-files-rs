@@ -21,7 +21,7 @@ use std::io::{Write};
 pub struct TlkBuilder {
     entries: Vec<TlkEntry>,
     language_id: LanguageId,
-    next_id: i32,
+    next_id: usize,
 }
 
 impl TlkBuilder {
@@ -34,7 +34,7 @@ impl TlkBuilder {
         }
     }
 
-    pub fn next_id(&mut self) -> i32
+    pub fn next_id(&mut self) -> usize
     {
         self.next_id
     }
@@ -81,7 +81,7 @@ impl From<TlkFile> for TlkBuilder
     fn from(tf: TlkFile) -> Self
     {
         let TlkFile { entries } = tf;
-        let next_id = entries.len() as i32;
+        let next_id = entries.len();
 
         TlkBuilder {
             language_id: LanguageId::English,
