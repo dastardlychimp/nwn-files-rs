@@ -31,6 +31,13 @@ impl SsfBuilder {
         self
     }
 
+    pub fn add_entries(&mut self, mut entries: Vec<SsfEntry>)
+        -> &mut Self
+    {
+        self.entries.append(&mut entries);
+        self
+    }
+
     pub fn write<W: Write>(self, writer: &mut W)
         -> Result<(), MyError>
     {
