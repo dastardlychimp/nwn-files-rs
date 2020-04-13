@@ -14,6 +14,7 @@ pub use language_id::LanguageId;
 pub use file_type::FileType;
 pub use version::Version;
 pub use crate::files::tlk::types::{TlkEntry, TlkSound};
+pub use crate::files::x2da::types::{X2daRow, X2daItem, X2daError};
 
 use std::io::prelude::*;
 
