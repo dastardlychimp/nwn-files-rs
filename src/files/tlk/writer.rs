@@ -1,3 +1,6 @@
+use crate::files::tlk::types::TlkFile;
+use std::convert::From;
+
 use crate::types::{
     Error as MyError,
     Version,
@@ -18,6 +21,7 @@ use std::io::{Write};
 pub struct TlkBuilder {
     entries: Vec<TlkEntry>,
     language_id: LanguageId,
+    next_id: i32,
 }
 
 impl TlkBuilder {
@@ -26,12 +30,19 @@ impl TlkBuilder {
         TlkBuilder {
             language_id: LanguageId::English,
             entries: Vec::new(),
+            next_id: 0,
         }
+    }
+
+    pub fn next_id(&mut self) -> i32
+    {
+        self.next_id
     }
     
     pub fn add_entry(&mut self, entry: TlkEntry)
         -> &mut Self
     {
+        self.next_id += 1;
         self.entries.push(entry);
         self
     }
@@ -62,5 +73,20 @@ impl TlkBuilder {
         header.serialize_to(writer)?;
 
         Ok(())
+    }
+}
+
+impl From<TlkFile> for TlkBuilder
+{
+    fn from(tf: TlkFile) -> Self
+    {
+        let TlkFile { entries } = tf;
+        let next_id = entries.len() as i32;
+
+        TlkBuilder {
+            language_id: LanguageId::English,
+            entries: entries,
+            next_id: next_id,
+        }
     }
 }
