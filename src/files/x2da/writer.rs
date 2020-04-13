@@ -6,12 +6,14 @@ use crate::types::{
 use std::io;
 use std::io::prelude::*;
 use std::io::BufWriter;
+use std::convert::From;
 
 use super::types::{
     X2daError,
     X2daRow,
     X2daHeader,
     X2daColumns,
+    X2daFile,
 };
 
 #[derive(Debug)]
@@ -208,6 +210,26 @@ impl Default for X2daBuilderConfig
     {
         X2daBuilderConfig {
             spacing_length: 4
+        }
+    }
+}
+
+impl<T: X2daRow> From<X2daFile<T>> for X2daBuilder<T>
+{
+    fn from(file: X2daFile<T>)
+        -> Self
+    {
+        let X2daFile {
+            rows,
+            columns,
+            header
+        } = file;
+        
+        X2daBuilder {
+            config: X2daBuilderConfig::default(),
+            rows: rows,
+            columns: Some(columns),
+            header: header,
         }
     }
 }
