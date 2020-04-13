@@ -13,6 +13,7 @@ pub use error::Error;
 pub use language_id::LanguageId;
 pub use file_type::FileType;
 pub use version::Version;
+pub use crate::files::tlk::types::{TlkEntry, TlkSound};
 
 use std::io::prelude::*;
 
