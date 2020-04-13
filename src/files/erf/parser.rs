@@ -20,20 +20,20 @@ use std::convert::TryFrom;
 pub fn parse(bytes: Vec<u8>) -> std::io::Result<ErfFile> {
     let header = parse_header(&bytes);
 
-    dbg!("{:?}", &header);
+    // dbg!("{:?}", &header);
 
     let localized_language_strings =
         parse_localized_language_strings(&bytes, &header);
 
-    dbg!("{:?}", &localized_language_strings);
+    // dbg!("{:?}", &localized_language_strings);
 
     let key_list = parse_key_list(&bytes, &header);
 
-    dbg!("{:?}", &key_list[0..2]);
+    // dbg!("{:?}", &key_list[0..2]);
 
     let resources = parse_resources(&bytes, &header, &key_list);
 
-    dbg!("{:?}", &resources[0..2]);
+    // dbg!("{:?}", &resources[0..2]);
 
     Ok(ErfFile {
         header: header,

@@ -63,7 +63,7 @@ pub trait X2daRow
         where Self: Sized
     {
         let mut strings = regex_parser::parse_string(line);
-        dbg!("{:?}", &strings);
+        
         match strings.len()
         {   
             l if l < Self::SIZE + 1 => Err(X2daError::X2daRowNotEnoughValues),

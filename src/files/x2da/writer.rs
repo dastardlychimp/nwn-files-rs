@@ -80,7 +80,7 @@ impl<T> X2daBuilder<T>
             })
             .collect::<Vec<Vec<String>>>();
             
-        dbg!("{:?}", &string_rows);
+        // dbg!("{:?}", &string_rows);
 
         let max_lengths = self.max_lengths(&string_rows);
 
@@ -95,7 +95,7 @@ impl<T> X2daBuilder<T>
             })
             .collect::<Result<Vec<_>, io::Error>>()?;
 
-        dbg!("{:?}", max_lengths);
+        // dbg!("{:?}", max_lengths);
 
         Ok(())
     }

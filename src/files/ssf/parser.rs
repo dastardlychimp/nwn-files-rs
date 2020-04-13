@@ -16,13 +16,13 @@ pub struct SsfFile(pub Vec<SsfEntry>);
 
 pub fn parse(bytes: Vec<u8>) -> std::io::Result<SsfFile> {
     let header = parse_ssf_header(&bytes);
-    dbg!("{:?}", &header);
+    // dbg!("{:?}", &header);
 
     let entry_offsets = parse_entry_table(&bytes, &header);
-    dbg!("{:?}", &entry_offsets);
+    // dbg!("{:?}", &entry_offsets);
 
     let entries = parse_entries(&bytes, &entry_offsets);
-    dbg!("{:?}", &entries);
+    // dbg!("{:?}", &entries);
 
     let ssf_file = SsfFile(entries);
 
