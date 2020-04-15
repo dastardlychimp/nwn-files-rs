@@ -1,3 +1,5 @@
+pub use super::erf_file::ErfFile;
+
 use std::io;
 use io::prelude::*;
 
@@ -131,8 +133,3 @@ impl SerializeToBytes for ErfResourceListItem {
     }    
 }
 
-#[derive(Debug)]
-pub struct ErfFile {
-    pub header: ErfHeader,
-    pub resources: Vec<Resource>,
-}

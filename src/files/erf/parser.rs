@@ -17,31 +17,7 @@ use crate::helpers::conversion::*;
 
 use std::convert::TryFrom;
 
-pub fn parse(bytes: Vec<u8>) -> std::io::Result<ErfFile> {
-    let header = parse_header(&bytes);
-
-    // dbg!("{:?}", &header);
-
-    let _localized_language_strings =
-        parse_localized_language_strings(&bytes, &header);
-
-    // dbg!("{:?}", &localized_language_strings);
-
-    let key_list = parse_key_list(&bytes, &header);
-
-    // dbg!("{:?}", &key_list[0..2]);
-
-    let resources = parse_resources(&bytes, &header, &key_list);
-
-    // dbg!("{:?}", &resources[0..2]);
-
-    Ok(ErfFile {
-        header: header,
-        resources: resources,
-    })
-}
-
-fn parse_header(bytes: &Vec<u8>) -> ErfHeader {
+pub fn parse_header(bytes: &Vec<u8>) -> ErfHeader {
     ErfHeader {
         version: Version::V1,
         file_type: FileType::Erf,
@@ -57,7 +33,7 @@ fn parse_header(bytes: &Vec<u8>) -> ErfHeader {
     }
 }
 
-fn parse_localized_language_strings(bytes: &Vec<u8>, header: &ErfHeader)
+pub fn parse_localized_language_strings(bytes: &Vec<u8>, header: &ErfHeader)
     -> Vec<ErfDescription>
 {
     let mut index = header.offset_to_localized_string as usize;
@@ -80,7 +56,7 @@ fn parse_localized_language_strings(bytes: &Vec<u8>, header: &ErfHeader)
         .collect()
 }
 
-fn parse_key_list(bytes: &Vec<u8>, header: &ErfHeader)
+pub fn parse_key_list(bytes: &Vec<u8>, header: &ErfHeader)
     -> Vec<ErfKey>
 {
     let mut index = header.offset_to_key_list as usize;
@@ -101,7 +77,7 @@ fn parse_key_list(bytes: &Vec<u8>, header: &ErfHeader)
         .collect()
 }
 
-fn parse_resources(bytes: &Vec<u8>, header: &ErfHeader, key_list: &Vec<ErfKey>)
+pub fn parse_resources(bytes: &Vec<u8>, header: &ErfHeader, key_list: &Vec<ErfKey>)
     -> Vec<Resource>
 {
     key_list

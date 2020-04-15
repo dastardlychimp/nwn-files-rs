@@ -18,6 +18,10 @@ pub use bif::BifFile2;
 pub use tlk::types::TlkFile;
 pub use tlk::writer::TlkBuilder;
 
+pub use types::{
+    ErfFile
+};
+
 use std::io::BufReader;
 use std::fs::File;
 
@@ -27,11 +31,6 @@ pub fn parse_key<P: AsRef<Path>>(file_path: P)
 {
     let bytes = read_file_to_vec(file_path)?;
     key::parse(bytes)
-}
-
-pub fn parse_erf<P: AsRef<Path>>(file_path: P) -> Result<erf::types::ErfFile, std::io::Error> {
-    let bytes = read_file_to_vec(file_path)?;
-    erf::parser::parse(bytes)
 }
 
 pub fn parse_ssf<P: AsRef<Path>>(file_path: P) -> Result<SsfFile, std::io::Error> {

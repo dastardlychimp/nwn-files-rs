@@ -1,3 +1,4 @@
 pub mod types;
-pub mod parser;
 pub mod writer;
+pub mod erf_file;
+pub(in self) mod parser;
