@@ -3,14 +3,28 @@ use io::Read;
 use io::{Seek, SeekFrom};
 
 pub trait ReaderExt: Read + Seek {
+    fn read_bytes(&mut self, bytes: usize)
+        -> Result<Vec<u8>, io::Error>
+    {
+        let mut buf = Vec::with_capacity(bytes);
+
+        self
+            .take(bytes as u64)
+            .read_to_end(&mut buf)
+            .and_then(|_| match buf.len() {
+                l if l == bytes => Ok(buf),
+                _ => Err(io::Error::new(
+                    io::ErrorKind::UnexpectedEof,
+                    format!("Found EoF before being able to read {} bytes", bytes)
+                )),
+            })
+    }
+    
     fn read_bytes_to_string(&mut self, bytes: usize)
         -> Result<String, io::Error>
     {
-        let mut buf = Vec::with_capacity(bytes);
-        buf.resize(bytes, 0);
-
-        self.read_exact(&mut buf)
-            .map(|_| String::from_utf8_lossy(buf.as_ref()).to_string())
+        self.read_bytes(bytes)
+            .map(|v| String::from_utf8_lossy(&v).to_string())
     }
 
     fn read_u32(&mut self)

@@ -18,27 +18,29 @@ pub struct ErfFile {
 }
 
 impl ErfFile {
-    pub fn parse_from<R: Read>(reader: &mut R)
+    pub fn parse_from<R: Read + Seek>(reader: &mut R)
         -> Result<Self, MyError>
     {
         // let mut reader = BufReader::new(reader);
-        let mut bytes = Vec::new();
-        reader.read_to_end(&mut bytes);
+        let mut reader = BufReader::new(reader);
 
-        let header = parse_header(&mut bytes);
+        let header = parse_header(&mut reader)?;
 
         // dbg!("{:?}", &header);
     
         let localized_language_strings =
-            parse_localized_language_strings(&mut bytes, &header);
+            parse_localized_language_strings(&mut reader, &header)?;
     
         // dbg!("{:?}", &localized_language_strings);
     
-        let key_list = parse_key_list(&mut bytes, &header);
+        let key_list = parse_key_list(&mut reader, &header)?;
     
         // dbg!("{:?}", &key_list[0..2]);
+
+        let resource_list_items = parse_resource_list_items(&mut reader, &header)?;
+
     
-        let resources = parse_resources(&mut bytes, &header, &key_list);
+        let resources = parse_resources(&mut reader, key_list, &resource_list_items)?;
     
         // dbg!("{:?}", &resources[0..2]);
     

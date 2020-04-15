@@ -9,7 +9,6 @@ use crate::types::{
     ResourceType,
     ResRef,
     LanguageId,
-    Resource,
     StaticByteSize,
     SerializeToBytes,
     Error as MyError,

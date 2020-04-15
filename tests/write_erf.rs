@@ -6,6 +6,7 @@ use std::fs::File;
 
 use nwn_files::types::{Resource, ResourceType, ResRef, FileType};
 use nwn_files::ErfFileBuilder;
+use nwn_files::ErfFile;
 
 mod helpers;
 
@@ -39,7 +40,8 @@ fn write_wav_file_to_erf() {
         .unwrap();
     
 
-    let parsed = nwn_files::parse_erf(&path).unwrap();
+    let mut parsed_file = File::open(&path).unwrap();
+    let parsed = ErfFile::parse_from(&mut parsed_file).unwrap();
 
     assert_eq!(name, parsed.resources[0].name);
 }

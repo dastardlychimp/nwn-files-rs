@@ -29,6 +29,7 @@ pub const NULL_U32: u32 = u32::max_value();
 
 pub const NULL_STRING: &str = "****";
 
+
 pub trait StaticByteSize {
     const BYTE_SIZE: usize;
 }
