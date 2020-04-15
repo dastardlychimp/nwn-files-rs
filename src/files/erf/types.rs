@@ -1,7 +1,5 @@
 use std::io;
 use io::prelude::*;
-use io::BufWriter;
-use std::fs::File;
 
 use crate::types::{
     Version,
@@ -10,42 +8,10 @@ use crate::types::{
     ResRef,
     LanguageId,
     Resource,
+    StaticByteSize,
+    SerializeToBytes,
+    Error as MyError,
 };
-
-pub trait SerializeErf
-{
-    const BYTE_SIZE: Option<usize> = None;
-    
-    fn byte_size(&self)
-        -> usize
-    {
-        Self::BYTE_SIZE.unwrap()
-    }
-
-    fn serialize_to(self, writer: &mut BufWriter<File>) 
-        -> io::Result<()>;
-}
-
-impl<C> SerializeErf for Vec<C>
-    where C: SerializeErf
-{
-    #[inline]
-    fn byte_size(&self)
-        -> usize
-    {
-        self.iter().fold(0, |state, x| x.byte_size() + state)
-    }
-
-    #[inline]
-    fn serialize_to(self, mut writer: &mut BufWriter<File>) 
-        -> io::Result<()>
-    {
-        self
-            .into_iter()
-            .map(|component| component.serialize_to(&mut writer))
-            .collect()
-    }
-}
 
 #[derive(Debug)]
 pub struct ErfHeader {
@@ -62,11 +28,13 @@ pub struct ErfHeader {
     pub description_str_ref: u32,    
 }
 
-impl SerializeErf for ErfHeader {
-    const BYTE_SIZE: Option<usize> = Some(160);
-    
-    fn serialize_to(self, writer: &mut BufWriter<File>)
-        -> io::Result<()>
+impl StaticByteSize for ErfHeader {
+    const BYTE_SIZE: usize = 160;
+}
+
+impl SerializeToBytes for ErfHeader {
+    fn serialize_to<F: Write>(self, writer: &mut F)
+        -> Result<(), MyError>
     {
         writer.write(self.file_type.as_str_ref().as_bytes())?;
         writer.write(self.version.as_str_ref().as_bytes())?;
@@ -82,26 +50,27 @@ impl SerializeErf for ErfHeader {
         writer.write(&[0; 116])?;
 
         Ok(())
-    }        
+    }
 }
 
 #[derive(Debug)]
-pub struct Description {
+pub struct ErfDescription {
     pub language_id: LanguageId,
     pub text: String,
 }
 
-impl SerializeErf for Description
-{
+impl ErfDescription {
     #[inline]
-    fn byte_size(&self)
+    pub fn byte_size(&self)
         -> usize
     {
         self.text.len() + 8
     }
+}
 
-    fn serialize_to(self, writer: &mut BufWriter<File>)
-        -> io::Result<()>
+impl SerializeToBytes for ErfDescription {
+    fn serialize_to<F: Write>(self, writer: &mut F)
+        -> Result<(), MyError>
     {
         let size = self.text.len() as u32;
         let id = self.language_id as u32 * 2;
@@ -122,12 +91,13 @@ pub struct ErfKey {
     pub resource_type: ResourceType,
 }
 
-impl SerializeErf for ErfKey
-{
-    const BYTE_SIZE: Option<usize> = Some(24);
+impl StaticByteSize for ErfKey {
+    const BYTE_SIZE: usize = 24;
+}
 
-    fn serialize_to(self, writer: &mut BufWriter<File>)
-        -> io::Result<()>
+impl SerializeToBytes for ErfKey {
+    fn serialize_to<F: Write>(self, writer: &mut F)
+        -> Result<(), MyError>
     {
         let ErfKey { file_name, resource_id, resource_type } = self;
 
@@ -137,27 +107,28 @@ impl SerializeErf for ErfKey
         writer.write(&[0; 2])?;
 
         Ok(())
-    }
+    }    
 }
 
 #[derive(Debug)]
-pub struct ResourceListItem {
+pub struct ErfResourceListItem {
     pub offset: u32,
     pub size: u32,
 }
 
-impl SerializeErf for ResourceListItem
-{
-    const BYTE_SIZE: Option<usize> = Some(8);
-    
-    fn serialize_to(self, writer: &mut BufWriter<File>)
-        -> io::Result<()>
+impl StaticByteSize for ErfResourceListItem {
+    const BYTE_SIZE: usize = 8;
+}
+
+impl SerializeToBytes for ErfResourceListItem {
+    fn serialize_to<F: Write>(self, writer: &mut F)
+        -> Result<(), MyError>
     {
         writer.write(&self.offset.to_le_bytes())?;
         writer.write(&self.size.to_le_bytes())?;
         
         Ok(())
-    }
+    }    
 }
 
 #[derive(Debug)]

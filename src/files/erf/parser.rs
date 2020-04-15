@@ -1,7 +1,7 @@
 use super::types::{
     ErfHeader,
     ErfKey,
-    Description,
+    ErfDescription,
     ErfFile,
 };
 
@@ -22,7 +22,7 @@ pub fn parse(bytes: Vec<u8>) -> std::io::Result<ErfFile> {
 
     // dbg!("{:?}", &header);
 
-    let localized_language_strings =
+    let _localized_language_strings =
         parse_localized_language_strings(&bytes, &header);
 
     // dbg!("{:?}", &localized_language_strings);
@@ -58,7 +58,7 @@ fn parse_header(bytes: &Vec<u8>) -> ErfHeader {
 }
 
 fn parse_localized_language_strings(bytes: &Vec<u8>, header: &ErfHeader)
-    -> Vec<Description>
+    -> Vec<ErfDescription>
 {
     let mut index = header.offset_to_localized_string as usize;
 
@@ -72,7 +72,7 @@ fn parse_localized_language_strings(bytes: &Vec<u8>, header: &ErfHeader)
 
             index += 8 + size_usize;
 
-            Description {
+            ErfDescription {
                 language_id: LanguageId::from(id),
                 text: text,
             }

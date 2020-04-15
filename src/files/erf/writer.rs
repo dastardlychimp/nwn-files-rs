@@ -1,8 +1,3 @@
-use super::types as erf_file_parts;
-use erf_file_parts::SerializeErf;
-
-use std::path::Path;
-use std::fs::File;
 use std::io;
 use io::prelude::*;
 use io::BufWriter;
@@ -15,12 +10,21 @@ use crate::types::{
     Version,
     FileType,
     NULL_U32,
+    StaticByteSize,
+    SerializeToBytes,
+};
+
+use super::types::{
+    ErfHeader,
+    ErfKey,
+    ErfDescription,
+    ErfResourceListItem,
 };
 
 #[derive(Debug)]
 pub struct ErfFileBuilder {
     resources: Vec<Resource>,
-    descriptions: Vec<erf_file_parts::Description>,
+    descriptions: Vec<ErfDescription>,
 }
 
 impl ErfFileBuilder {
@@ -36,7 +40,7 @@ impl ErfFileBuilder {
     pub fn add_description(&mut self, language_id: LanguageId, text: String)
         -> &mut Self
     {
-        self.descriptions.push(erf_file_parts::Description {
+        self.descriptions.push(ErfDescription {
             language_id: language_id,
             text: text,
         });
@@ -57,33 +61,17 @@ impl ErfFileBuilder {
         self
     }
     
-    pub fn write<P: AsRef<Path>>(&mut self, file_path: P, file_type: FileType)
+    pub fn write<W: Write>(&mut self, writer: &mut W, file_type: FileType)
         -> Result<(), MyError>
     {
-        let file_path = file_path.as_ref();
-        // if file_path.exists()
-        // {
-        //     return Err(MyError::PathAlreadyExists(
-        //         file_path
-        //             .to_string_lossy()
-        //             .to_string()
-        //     ));
-        // }
-
-        let valid_file_types = [FileType::Erf, FileType::Hak, FileType::Mod, FileType::Sav];
-        if ! valid_file_types.contains(&file_type)
-        {
-            return Err(MyError::InvalidFileTypeForErf(file_type));
-        }
-
         let descriptions = mem::replace(&mut self.descriptions, Vec::new());
         let resources = mem::replace(&mut self.resources, Vec::new());
         
         let entry_count = resources.len();
         let description_count = descriptions.len();
-        let key_list_size = erf_file_parts::ErfKey::BYTE_SIZE.unwrap() * entry_count;
-        let resource_list_size =  erf_file_parts::ResourceListItem::BYTE_SIZE.unwrap() * entry_count;
-        let header_size = erf_file_parts::ErfHeader::BYTE_SIZE.unwrap();
+        let key_list_size = ErfKey::BYTE_SIZE * entry_count;
+        let resource_list_size =  ErfResourceListItem::BYTE_SIZE * entry_count;
+        let header_size = ErfHeader::BYTE_SIZE;
         let language_size = descriptions
             .iter()
             .fold(0, |count, description| count + description.byte_size());
@@ -93,7 +81,7 @@ impl ErfFileBuilder {
         let offset_to_resource_list = offset_to_key_list + key_list_size;
         let offset_to_resources = offset_to_resource_list + resource_list_size;
 
-        let header = erf_file_parts::ErfHeader {
+        let header = ErfHeader {
             version: Version::V1,
             file_type: file_type,
             language_count: description_count as u32,
@@ -111,20 +99,20 @@ impl ErfFileBuilder {
             .iter()
             .enumerate()
             .map(|(i, resource)| {
-                erf_file_parts::ErfKey {
+                ErfKey {
                     file_name: resource.name.clone(),
                     resource_id: i as u32,
                     resource_type: resource.resource_type.clone(),
                 }
             })
-            .collect::<Vec<erf_file_parts::ErfKey>>();
+            .collect::<Vec<ErfKey>>();
 
         let resource_list = resources
             .iter()
             .scan(offset_to_resources, |state, resource| {                
                 let resource_size = resource.data.len();
 
-                let item = erf_file_parts::ResourceListItem {
+                let item = ErfResourceListItem {
                     offset: *state as u32,
                     size: resource_size as u32,
                 };
@@ -133,10 +121,9 @@ impl ErfFileBuilder {
 
                 Some(item)
             })
-            .collect::<Vec<erf_file_parts::ResourceListItem>>();
+            .collect::<Vec<ErfResourceListItem>>();
 
-        let f = File::create(file_path)?;
-        let mut writer = BufWriter::new(f);
+        let mut writer = BufWriter::new(writer);
 
         header.serialize_to(&mut writer)?;
         descriptions.serialize_to(&mut writer)?;
