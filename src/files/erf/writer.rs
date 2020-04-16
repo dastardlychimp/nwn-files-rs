@@ -4,9 +4,7 @@ use io::BufWriter;
 use std::mem;
 use crate::helpers::date;
 use crate::types::{
-    Resource,
     Error as MyError,
-    LanguageId,
     Version,
     FileType,
     NULL_U32,
@@ -15,131 +13,90 @@ use crate::types::{
 };
 
 use super::types::{
+    ErfFile,
     ErfHeader,
     ErfKey,
-    ErfDescription,
     ErfResourceListItem,
 };
 
-#[derive(Debug)]
-pub struct ErfFileBuilder {
-    resources: Vec<Resource>,
-    descriptions: Vec<ErfDescription>,
-}
 
-impl ErfFileBuilder {
-    pub fn new()
-        -> Self
-    {
-        ErfFileBuilder {
-            resources: Vec::new(),
-            descriptions: Vec::new(),
-        }
-    }
-
-    pub fn add_description(&mut self, language_id: LanguageId, text: String)
-        -> &mut Self
-    {
-        self.descriptions.push(ErfDescription {
-            language_id: language_id,
-            text: text,
-        });
-        self
-    }
-
-    pub fn add_resource(&mut self, resource: Resource)
-        -> &mut Self
-    {
-        self.resources.push(resource);
-        self
-    }
-
-    pub fn add_resources(&mut self, resources: &mut Vec<Resource>)
-        -> &mut Self
-    {
-        self.resources.append(resources);
-        self
-    }
+pub fn write<W: Write>(erf_file: &mut ErfFile, writer: &mut W, file_type: FileType)
+    -> Result<(), MyError>
+{
+    let descriptions = mem::replace(&mut erf_file.descriptions, Vec::new());
+    let resources = mem::replace(&mut erf_file.resources, Vec::new());
     
-    pub fn write<W: Write>(&mut self, writer: &mut W, file_type: FileType)
-        -> Result<(), MyError>
-    {
-        let descriptions = mem::replace(&mut self.descriptions, Vec::new());
-        let resources = mem::replace(&mut self.resources, Vec::new());
-        
-        let entry_count = resources.len();
-        let description_count = descriptions.len();
-        let key_list_size = ErfKey::BYTE_SIZE * entry_count;
-        let resource_list_size =  ErfResourceListItem::BYTE_SIZE * entry_count;
-        let header_size = ErfHeader::BYTE_SIZE;
-        let language_size = descriptions
-            .iter()
-            .fold(0, |count, description| count + description.byte_size());
-        
+    let entry_count = resources.len();
+    let description_count = descriptions.len();
+    let key_list_size = ErfKey::BYTE_SIZE * entry_count;
+    let resource_list_size =  ErfResourceListItem::BYTE_SIZE * entry_count;
+    let header_size = ErfHeader::BYTE_SIZE;
+    let language_size = descriptions
+        .iter()
+        .fold(0, |count, description| count + description.byte_size());
+    
 
-        let offset_to_key_list = header_size + language_size;
-        let offset_to_resource_list = offset_to_key_list + key_list_size;
-        let offset_to_resources = offset_to_resource_list + resource_list_size;
+    let offset_to_key_list = header_size + language_size;
+    let offset_to_resource_list = offset_to_key_list + key_list_size;
+    let offset_to_resources = offset_to_resource_list + resource_list_size;
 
-        let header = ErfHeader {
-            version: Version::V1,
-            file_type: file_type,
-            language_count: description_count as u32,
-            localized_string_size: language_size as u32,
-            entry_count: entry_count as u32,
-            offset_to_localized_string: header_size as u32,
-            offset_to_key_list: offset_to_key_list as u32,
-            offset_to_resource_list: offset_to_resource_list as u32,
-            build_day: date::days_since_jan_1(),
-            build_year: date::years_since_1990(),
-            description_str_ref: NULL_U32,
-        };
+    let header = ErfHeader {
+        version: Version::V1,
+        file_type: file_type,
+        language_count: description_count as u32,
+        localized_string_size: language_size as u32,
+        entry_count: entry_count as u32,
+        offset_to_localized_string: header_size as u32,
+        offset_to_key_list: offset_to_key_list as u32,
+        offset_to_resource_list: offset_to_resource_list as u32,
+        build_day: date::days_since_jan_1(),
+        build_year: date::years_since_1990(),
+        description_str_ref: NULL_U32,
+    };
 
-        let key_list = resources
-            .iter()
-            .enumerate()
-            .map(|(i, resource)| {
-                ErfKey {
-                    file_name: resource.name.clone(),
-                    resource_id: i as u32,
-                    resource_type: resource.resource_type.clone(),
-                }
-            })
-            .collect::<Vec<ErfKey>>();
+    let key_list = resources
+        .iter()
+        .enumerate()
+        .map(|(i, resource)| {
+            ErfKey {
+                file_name: resource.name.clone(),
+                resource_id: i as u32,
+                resource_type: resource.resource_type.clone(),
+            }
+        })
+        .collect::<Vec<ErfKey>>();
 
-        let resource_list = resources
-            .iter()
-            .scan(offset_to_resources, |state, resource| {                
-                let resource_size = resource.data.len();
+    let resource_list = resources
+        .iter()
+        .scan(offset_to_resources, |state, resource| {                
+            let resource_size = resource.data.len();
 
-                let item = ErfResourceListItem {
-                    offset: *state as u32,
-                    size: resource_size as u32,
-                };
+            let item = ErfResourceListItem {
+                offset: *state as u32,
+                size: resource_size as u32,
+            };
 
-                *state = *state + resource_size;
+            *state = *state + resource_size;
 
-                Some(item)
-            })
-            .collect::<Vec<ErfResourceListItem>>();
+            Some(item)
+        })
+        .collect::<Vec<ErfResourceListItem>>();
 
-        let mut writer = BufWriter::new(writer);
+    let mut writer = BufWriter::new(writer);
 
-        header.serialize_to(&mut writer)?;
-        descriptions.serialize_to(&mut writer)?;
-        key_list.serialize_to(&mut writer)?;
-        resource_list.serialize_to(&mut writer)?;
+    header.serialize_to(&mut writer)?;
+    descriptions.serialize_to(&mut writer)?;
+    key_list.serialize_to(&mut writer)?;
+    resource_list.serialize_to(&mut writer)?;
 
-        resources
-            .iter()
-            .map(|resource| {
-                writer.write(&resource.data)
-            })
-            .collect::<Result<Vec<_>, io::Error>>()?;
+    resources
+        .iter()
+        .map(|resource| {
+            writer.write(&resource.data)
+        })
+        .collect::<Result<Vec<_>, io::Error>>()?;
 
-        writer.flush()?;
+    writer.flush()?;
 
-        Ok(())
-    }
+    Ok(())
 }
-

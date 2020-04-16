@@ -6,9 +6,12 @@ use super::types::*;
 use crate::types::{
     Resource,
     Error as MyError,
+    FileType,
+    LanguageId,
 };
 
 use super::parser::*;
+use super::writer::write as _write;
 
 #[derive(Debug)]
 pub struct ErfFile {
@@ -18,6 +21,46 @@ pub struct ErfFile {
 }
 
 impl ErfFile {
+    pub fn new()
+        -> Self
+    {
+        ErfFile {
+            header: None,
+            resources: Vec::new(),
+            descriptions: Vec::new(),
+        }
+    }
+
+    pub fn add_description(&mut self, language_id: LanguageId, text: String)
+        -> &mut Self
+    {
+        self.descriptions.push(ErfDescription {
+            language_id: language_id,
+            text: text,
+        });
+        self
+    }
+
+    pub fn add_resource(&mut self, resource: Resource)
+        -> &mut Self
+    {
+        self.resources.push(resource);
+        self
+    }
+
+    pub fn add_resources(&mut self, resources: &mut Vec<Resource>)
+        -> &mut Self
+    {
+        self.resources.append(resources);
+        self
+    }
+
+    pub fn write<W: Write>(&mut self, writer:  &mut W, file_type: FileType)
+        -> Result<(), MyError>
+    {
+        _write(self, writer, file_type)
+    }
+    
     pub fn parse_from<R: Read + Seek>(reader: &mut R)
         -> Result<Self, MyError>
     {
@@ -50,4 +93,5 @@ impl ErfFile {
             resources: resources,
         })
     }
+
 }

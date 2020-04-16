@@ -1,7 +1,7 @@
 mod helpers;
 mod files;
 
-use files::{bif, key, erf, ssf, x2da, tlk};
+use files::{bif, key, ssf, x2da, tlk};
 use std::path::Path;
 use helpers::file::read_file_to_vec;
 
@@ -12,7 +12,6 @@ pub use ssf::parser::SsfFile;
 pub use ssf::writer::SsfBuilder;
 pub use x2da::parser::parse as parse_x2da;
 pub use x2da::writer::X2daBuilder;
-pub use erf::writer::ErfFileBuilder;
 pub use key::{BifFile, BifResource};
 pub use bif::BifFile2;
 pub use tlk::types::TlkFile;

@@ -14,7 +14,6 @@ use crate::types::{
     Resource,
     ResRef,
     LanguageId,
-    StaticByteSize,
     Error as MyError,
 };
 use crate::helpers::reader::ReaderExt;

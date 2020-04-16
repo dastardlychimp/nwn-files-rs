@@ -5,7 +5,6 @@ use std::convert::TryFrom;
 use std::fs::File;
 
 use nwn_files::types::{Resource, ResourceType, ResRef, FileType};
-use nwn_files::ErfFileBuilder;
 use nwn_files::ErfFile;
 
 mod helpers;
@@ -33,7 +32,7 @@ fn write_wav_file_to_erf() {
 
     let mut f = File::create(path).unwrap();
 
-    ErfFileBuilder::new()
+    ErfFile::new()
         .add_resource(resource)
         .add_resource(resource_2)
         .write(&mut f, FileType::Erf)
