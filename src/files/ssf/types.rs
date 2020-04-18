@@ -4,29 +4,19 @@ use io::prelude::*;
 use crate::types::{
     Version,
     FileType,
-    SsfEntry,
     NULL_U32,
     StaticByteSize,
+    ResRef,
+    SerializeToBytes,
+    Error as MyError,
 };
 
-pub trait SerializeSsf {
-    fn serialize_to<F: Write>(self, writer: &mut F)
-        -> io::Result<()>;
+#[derive(Debug, Default)]
+pub struct SsfEntry {
+    pub res_ref: ResRef,
+    pub string_ref: Option<u32>,
 }
 
-impl<C: SerializeSsf> SerializeSsf for Vec<C>
-{
-    fn serialize_to<F: Write>(self, writer: &mut F)
-        -> io::Result<()>
-    {
-        self
-            .into_iter()
-            .map(|c| c.serialize_to(writer))
-            .collect::<Result<Vec<_>, io::Error>>()?;
-        
-        Ok(())
-    }
-}
 
 #[derive(Debug)]
 pub struct SsfHeader {
@@ -36,10 +26,10 @@ pub struct SsfHeader {
     pub table_offset: u32,
 }
 
-impl SerializeSsf for SsfHeader
+impl SerializeToBytes for SsfHeader
 {
     fn serialize_to<F: Write>(self, writer: &mut F)
-        -> io::Result<()>
+        -> Result<(), MyError>
     {
         writer.write(self.version.as_str_ref().as_bytes())?;
         writer.write(self.file_type.as_str_ref().as_bytes())?;
@@ -56,10 +46,10 @@ impl StaticByteSize for SsfHeader
     const BYTE_SIZE: usize = 40;
 }
 
-impl SerializeSsf for SsfEntry
+impl SerializeToBytes for SsfEntry
 {
     fn serialize_to<F: Write>(self, writer: &mut F)
-        -> io::Result<()>
+        -> Result<(), MyError>
     {
         writer.write(&self.res_ref.serialize())?;
 

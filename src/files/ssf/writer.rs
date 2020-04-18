@@ -1,4 +1,4 @@
-use super::types::{ SsfHeader, SerializeSsf };
+use super::types::{ SsfHeader };
 
 use crate::types::{
     SsfEntry,
@@ -6,6 +6,7 @@ use crate::types::{
     FileType,
     Error as MyError,
     StaticByteSize,
+    SerializeToBytes
 };
 
 

@@ -8,9 +8,8 @@ use helpers::file::read_file_to_vec;
 pub mod types;
 pub use bif::parse as parse_bif;
 
-pub use ssf::parser::SsfFile;
+pub use ssf::ssf_file::SsfFile;
 pub use ssf::writer::SsfBuilder;
-pub use x2da::parser::parse as parse_x2da;
 pub use x2da::writer::X2daBuilder;
 pub use key::{BifFile, BifResource};
 pub use bif::BifFile2;
@@ -26,10 +25,5 @@ pub fn parse_key<P: AsRef<Path>>(file_path: P)
 {
     let bytes = read_file_to_vec(file_path)?;
     key::parse(bytes)
-}
-
-pub fn parse_ssf<P: AsRef<Path>>(file_path: P) -> Result<SsfFile, std::io::Error> {
-    let bytes = read_file_to_vec(file_path)?;
-    ssf::parser::parse(bytes)
 }
 

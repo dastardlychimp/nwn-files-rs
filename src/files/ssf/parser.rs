@@ -1,20 +1,19 @@
 use crate::helpers::conversion::*;
 use crate::types::*;
+use crate::types::{
+    Error as MyError,
+};
+
 use std::convert::TryFrom;
 
+use super::ssf_file::SsfFile;
+use super::types::{
+    SsfHeader,
+};
 
-#[derive(Debug)]
-pub struct SsfHeader {
-    version: Version,
-    file_type: FileType,
-    entry_count: u32,
-    table_offset: u32,
-}
-
-#[derive(Debug)]
-pub struct SsfFile(pub Vec<SsfEntry>);
-
-pub fn parse(bytes: Vec<u8>) -> std::io::Result<SsfFile> {
+pub fn parse(bytes: Vec<u8>)
+    -> Result<SsfFile, MyError>
+{
     let header = parse_ssf_header(&bytes);
     // dbg!("{:?}", &header);
 
@@ -24,9 +23,10 @@ pub fn parse(bytes: Vec<u8>) -> std::io::Result<SsfFile> {
     let entries = parse_entries(&bytes, &entry_offsets);
     // dbg!("{:?}", &entries);
 
-    let ssf_file = SsfFile(entries);
-
-    Ok(ssf_file)
+    Ok(SsfFile {
+        header: Some(header),
+        entries: entries
+    })
 }
 
 fn parse_ssf_header(bytes: &Vec<u8>) -> SsfHeader {

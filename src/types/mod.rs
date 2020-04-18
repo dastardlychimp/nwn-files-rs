@@ -16,14 +16,9 @@ pub use version::Version;
 pub use crate::files::tlk::types::{TlkEntry, TlkSound};
 pub use crate::files::x2da::types::{X2daRow, X2daItem, X2daError};
 pub use crate::files::erf::types::{ErfFile};
+pub use crate::files::ssf::types::{SsfEntry};
 
 use std::io::prelude::*;
-
-#[derive(Debug, Default)]
-pub struct SsfEntry {
-    pub res_ref: ResRef,
-    pub string_ref: Option<u32>,
-}
 
 pub const NULL_U32: u32 = u32::max_value();
 

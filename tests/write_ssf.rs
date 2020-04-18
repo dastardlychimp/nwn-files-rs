@@ -5,6 +5,7 @@ use std::convert::TryFrom;
 use std::fs::File;
 
 use nwn_files::SsfBuilder;
+use nwn_files::SsfFile;
 use nwn_files::types::{SsfEntry, ResRef};
 
 mod helpers;
@@ -39,8 +40,10 @@ fn write_ssf() {
 
     builder.write(&mut f).unwrap();
 
-    let parsed = nwn_files::parse_ssf(ssf_file_path()).unwrap();
+    let mut f = File::open(ssf_file_path()).unwrap();
 
-    assert_eq!(30, parsed.0.len());
-    assert_eq!(res_ref, parsed.0[0].res_ref);
+    let parsed = SsfFile::parse_from(&mut f).unwrap();
+
+    assert_eq!(30, parsed.entries.len());
+    assert_eq!(res_ref, parsed.entries[0].res_ref);
 }

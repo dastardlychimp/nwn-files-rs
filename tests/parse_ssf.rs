@@ -1,6 +1,8 @@
 use nwn_files;
+use nwn_files::SsfFile;
 
 use std::path::Path;
+use std::fs::File;
 
 mod helpers;
 use helpers::plain_text;
@@ -11,10 +13,11 @@ fn ssf_file_path() -> &'static Path {
     return Path::new(SFP);
 }
 
-fn parse_default_ssf() -> nwn_files::SsfFile
+fn parse_default_ssf() -> SsfFile
 {
     assert!(ssf_file_path().exists());
-    nwn_files::parse_ssf(ssf_file_path()).unwrap()
+    let mut f = File::open(ssf_file_path()).unwrap();
+    SsfFile::parse_from(&mut f).unwrap()
 }
 
 #[test]
