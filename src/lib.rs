@@ -14,15 +14,11 @@ pub use x2da::parser::parse as parse_x2da;
 pub use x2da::writer::X2daBuilder;
 pub use key::{BifFile, BifResource};
 pub use bif::BifFile2;
-pub use tlk::types::TlkFile;
-pub use tlk::writer::TlkBuilder;
+pub use tlk::tlk_file::TlkFile;
 
 pub use types::{
     ErfFile
 };
-
-use std::io::BufReader;
-use std::fs::File;
 
 
 pub fn parse_key<P: AsRef<Path>>(file_path: P)
@@ -35,11 +31,5 @@ pub fn parse_key<P: AsRef<Path>>(file_path: P)
 pub fn parse_ssf<P: AsRef<Path>>(file_path: P) -> Result<SsfFile, std::io::Error> {
     let bytes = read_file_to_vec(file_path)?;
     ssf::parser::parse(bytes)
-}
-
-pub fn parse_tlk<P: AsRef<Path>>(file_path: P) -> Result<TlkFile, types::Error> {
-    let f = File::open(file_path.as_ref()).unwrap();
-    let mut r = BufReader::new(f);
-    tlk::parser::parse(&mut r)
 }
 

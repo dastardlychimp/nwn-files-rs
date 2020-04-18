@@ -1,49 +1,75 @@
-use crate::files::tlk::types::TlkFile;
-use std::convert::From;
+use super::parser;
 
 use crate::types::{
-    Error as MyError,
     Version,
     FileType,
     LanguageId,
+    Error as MyError,
     StaticByteSize,
     SerializeToBytes,
 };
 
 use super::types::{
-    TlkEntry,
     TlkHeader,
+    TlkEntry,
     TlkData,
 };
 
-use std::io::{Write};
+use std::io::prelude::*;
 
-pub struct TlkBuilder {
-    entries: Vec<TlkEntry>,
-    language_id: LanguageId,
-    next_id: usize,
+const ALT_ENTRY: usize = 0x01000000;
+
+#[derive(Debug)]
+pub struct TlkFile {
+    pub header: Option<TlkHeader>,
+    pub entries: Vec<TlkEntry>,
+    pub language_id: LanguageId,
+    pub entry_count: usize,
+    pub alternative: bool,
 }
 
-impl TlkBuilder {
-    pub fn new() -> Self
+impl TlkFile {
+    pub fn new()
+        -> Self
     {
-        TlkBuilder {
-            language_id: LanguageId::English,
+        TlkFile {
+            header: None,
             entries: Vec::new(),
-            next_id: 0,
+            language_id: LanguageId::English,
+            entry_count: 0,
+            alternative: true,
         }
     }
+    
+    pub fn parse_from<R: BufRead + Seek>(reader: &mut R, alternative: bool)
+        -> Result<Self, MyError>
+    {
+        parser::parse(reader, alternative)
+    }
+
 
     pub fn next_id(&mut self) -> usize
     {
-        self.next_id
+        if self.alternative {
+            self.entry_count + ALT_ENTRY
+        } else {
+            self.entry_count
+        }
     }
     
     pub fn add_entry(&mut self, entry: TlkEntry)
         -> &mut Self
     {
-        self.next_id += 1;
+        self.entry_count += 1;
         self.entries.push(entry);
+        self
+    }
+
+    pub fn add_entries(&mut self, mut entries: Vec<TlkEntry>)
+        -> &mut Self
+    {
+        self.entry_count += entries.len();
+        self.entries.append(&mut entries);
         self
     }
 
@@ -73,20 +99,5 @@ impl TlkBuilder {
         header.serialize_to(writer)?;
 
         Ok(())
-    }
-}
-
-impl From<TlkFile> for TlkBuilder
-{
-    fn from(tf: TlkFile) -> Self
-    {
-        let TlkFile { entries } = tf;
-        let next_id = entries.len();
-
-        TlkBuilder {
-            language_id: LanguageId::English,
-            entries: entries,
-            next_id: next_id,
-        }
     }
 }

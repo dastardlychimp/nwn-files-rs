@@ -1,25 +1,20 @@
 use nwn_files;
+use nwn_files::TlkFile;
 
 use std::path::Path;
 use std::fs::File;
 use std::io::BufWriter;
 
-use nwn_files::TlkBuilder;
-
 mod helpers;
+use helpers::tlk::{parse_from_path, tlk_file_path};
 
-const TFP: &str = "./tests/samples/dialog.tlk";
-
-fn tlk_file_path() -> &'static Path {
-    return Path::new(TFP);
-}
 
 #[test]
 fn write_tlk() {
-    let parsed = nwn_files::parse_tlk(tlk_file_path()).unwrap();
+    let parsed = parse_from_path(tlk_file_path(), false).unwrap();
     let path_tlk = Path::new("./tests/outputs/my_tlk.tlk");
 
-    let mut builder = TlkBuilder::new();
+    let mut builder = TlkFile::new();
 
     builder
         .add_entry(parsed.entries[374].clone())
@@ -32,7 +27,7 @@ fn write_tlk() {
         builder.write(&mut writer).unwrap();
     }
 
-    let my_parsed = nwn_files::parse_tlk(path_tlk).unwrap();
+    let my_parsed = parse_from_path(path_tlk, false).unwrap();
 
     assert_eq!(2, my_parsed.entries.len());
 }

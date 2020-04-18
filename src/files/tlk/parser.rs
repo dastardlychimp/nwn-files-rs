@@ -10,8 +10,9 @@ use crate::types::{
     ResRef,
 };
 
+use super::tlk_file::TlkFile;
+
 use super::types::{
-    TlkFile,
     TlkHeader,
     TlkData,
     TlkFlags,
@@ -21,7 +22,7 @@ use super::types::{
 
 use crate::helpers::reader::ReaderExt;
 
-pub fn parse<R>(reader: &mut R)
+pub fn parse<R>(reader: &mut R, alternative: bool)
     -> Result<TlkFile, MyError>
     where R: BufRead + Seek
 {
@@ -60,10 +61,15 @@ pub fn parse<R>(reader: &mut R)
                 sound,
             }
         })
-        .collect();
+        .collect::<Vec<TlkEntry>>();
+
     
     Ok(TlkFile {
-        entries: tlk_entries
+        entry_count:  tlk_entries.len(),
+        language_id: header.language_id.clone(),
+        header: Some(header),
+        entries: tlk_entries,
+        alternative: alternative,
     })
 }
 
