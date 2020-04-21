@@ -16,7 +16,8 @@ pub enum X2daError
     X2daRowTooManyValues,
     X2daWrongNumberColumns(usize, usize),
     X2daColumnsOnlyAlphaAndUnderscore,
-    X2daBuildWithoutColumns,
+    X2daWriteWithoutHeader,
+    X2daWriteWithoutColumns,
     InvalidTableItem
 }
 
@@ -36,8 +37,10 @@ impl fmt::Display for X2daError
                 write!(f, "Found {} columns, expected {}", found, expected),
             X2daError::X2daColumnsOnlyAlphaAndUnderscore =>
                 write!(f, "X2da columns can only contain lowercase/uppercase letters and underscores."),
-            X2daError::X2daBuildWithoutColumns =>
+            X2daError::X2daWriteWithoutColumns =>
                 write!(f, "X2da can't be build without columns defined."),
+            X2daError::X2daWriteWithoutHeader =>
+                write!(f, "X2da can't be written without a header created."),
             X2daError::InvalidTableItem =>
                 write!(f, "X2da contained a tableitem that couldn't be parsed successfully."),
         }
@@ -181,19 +184,17 @@ impl Default for X2daHeader {
 }
 
 #[derive(Debug)]
-pub struct X2daFile<T: X2daRow> {
-    pub header: X2daHeader,
-    pub rows: Vec<T>,
-    pub columns: Vec<String>,
+pub struct X2daBuilderConfig
+{
+    pub spacing_length: usize,
 }
 
-impl<T: X2daRow> X2daFile<T> {
-    pub fn new(columns: Vec<String>, rows: Vec<T>) -> Self
+impl Default for X2daBuilderConfig
+{
+    fn default() -> Self
     {
-        X2daFile {
-            header: X2daHeader::default(),
-            rows: rows,
-            columns: columns,
+        X2daBuilderConfig {
+            spacing_length: 4
         }
     }
 }

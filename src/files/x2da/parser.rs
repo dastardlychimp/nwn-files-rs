@@ -4,16 +4,18 @@ use crate::types::{
     Error as MyError,
 };
 
+use super::x2da_file::X2daFile;
 use super::types::{
     X2daError,
     X2daRow,
-    X2daFile,
     X2daColumns,
+    X2daHeader,
 };
 
 pub fn parse<T: X2daRow, F: Seek + BufRead>(reader: F)
     -> Result<X2daFile<T>, MyError>
 {
+    
     let lines = reader
         .lines()
         .collect::<std::io::Result<Vec<_>>>()?;
@@ -30,7 +32,11 @@ pub fn parse<T: X2daRow, F: Seek + BufRead>(reader: F)
         .map(T::from_line)
         .collect::<Result<Vec<T>, X2daError>>()?;
 
-    Ok(X2daFile::new(columns, rows))
+    Ok(X2daFile {
+        header: Some(X2daHeader::default()),
+        rows: rows,
+        columns: Some(columns),
+    })
 }
 
 
@@ -63,7 +69,7 @@ mod test
         let file = parse::<Sample2da, _>(c).unwrap();
 
         assert_eq!(expected_rows, file.rows);
-        assert_eq!(expected_columns, file.columns);
+        assert_eq!(Some(expected_columns), file.columns);
     }
 
     #[test]

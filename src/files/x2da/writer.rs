@@ -8,232 +8,178 @@ use std::io::prelude::*;
 use std::io::BufWriter;
 use std::convert::From;
 
+
+use super::x2da_file::X2daFile;
+
 use super::types::{
     X2daError,
     X2daRow,
     X2daHeader,
-    X2daColumns,
-    X2daFile,
+    X2daBuilderConfig,
 };
 
-#[derive(Debug)]
-pub struct X2daBuilder<T>
-    where T: X2daRow
+pub fn validate_row<T: X2daRow>(row: &T)
+    -> Result<(), X2daError>
 {
-    rows: Vec<T>,
-    config: X2daBuilderConfig,
-    columns: Option<Vec<String>>,
-    header: X2daHeader,
+    row.to_row()
+        .as_ref()
+        .iter()
+        .map(|item| item
+            .as_ref()
+            .map(|i| i.validate())
+            .unwrap_or(Ok(()))
+        )
+        .collect::<Result<Vec<_>, X2daError>>()?;
+
+    Ok(())
 }
 
-impl<T> X2daBuilder<T>
-    where T: X2daRow
+pub fn write<F, T>(
+    x2da_file: &mut X2daFile<T>, 
+    writer: &mut F,
+    config: X2daBuilderConfig
+)
+    -> Result<(), MyError>
+    where F: Write, T: X2daRow
 {
-    pub fn new() -> Self
+    if x2da_file.columns.is_none()
     {
-        X2daBuilder {
-            rows: Vec::new(),
-            config: X2daBuilderConfig::default(),
-            columns: None,
-            header: X2daHeader::default(),
-        }
+        Err(X2daError::X2daWriteWithoutColumns)?;
     }
 
-    pub fn set_columns(&mut self, columns: Vec<String>)
-        -> Result<&mut Self, X2daError>
+    if x2da_file.header.is_none()
     {
-        X2daColumns::validate::<T>(&columns)?;
-        self.columns = Some(columns);
-        Ok(self)
+        Err(X2daError::X2daWriteWithoutHeader)?;
     }
 
-    pub fn add_row(&mut self, item: T)
-        -> Result<&mut Self, X2daError>
-    {
-        Self::validate_row(&item)?;
-        self.rows.push(item);
-        Ok(self)
-    }
+    let mut writer = BufWriter::new(writer);
 
-    pub fn write<F: Write>(&mut self, writer: &mut F)
-        -> Result<(), MyError>
-    {
-        if self.columns.is_none()
-        {
-            Err(X2daError::X2daBuildWithoutColumns)?;
-        }
-
-        let mut writer = BufWriter::new(writer);
-
-        let string_rows = self.rows
-            .iter()
-            .map(|r| {
-                r.to_row()
-                    .as_ref()
-                    .iter()
-                    .map(|item| item
-                        .as_ref()
-                        .map(|i| i.serialize_to_string())
-                        .unwrap_or(String::from(NULL_STRING))
-                    )
-                    .collect()
-            })
-            .collect::<Vec<Vec<String>>>();
-            
-        // dbg!("{:?}", &string_rows);
-
-        let max_lengths = self.max_lengths(&string_rows);
-
-        self.write_header(&mut writer)?;
-        self.write_columns(&mut writer, &max_lengths)?;
-
-        string_rows
-            .iter()
-            .enumerate()
-            .map(|(idx, row)| {
-                self.write_row(&mut writer, &max_lengths, idx, row)
-            })
-            .collect::<Result<Vec<_>, io::Error>>()?;
-
-        // dbg!("{:?}", max_lengths);
-
-        Ok(())
-    }
-
-    fn validate_row(row: &T)
-        -> Result<(), X2daError>
-    {
-        row.to_row()
-            .as_ref()
-            .iter()
-            .map(|item| item
+    let string_rows = x2da_file.rows
+        .iter()
+        .map(|r| {
+            r.to_row()
                 .as_ref()
-                .map(|i| i.validate())
-                .unwrap_or(Ok(()))
-            )
-            .collect::<Result<Vec<_>, X2daError>>()?;
-
-        Ok(())
-    }
-
-    fn write_row<F: Write>(
-        &self,
-        writer: &mut F,
-        max_lengths: &Vec<usize>,
-        idx: usize,
-        row: &Vec<String>
-    )
-        -> Result<(), io::Error>
-    {
-        write!(writer, "{:<width$}", idx, width = self.config.spacing_length + 1)?;
+                .iter()
+                .map(|item| item
+                    .as_ref()
+                    .map(|i| i.serialize_to_string())
+                    .unwrap_or(String::from(NULL_STRING))
+                )
+                .collect()
+        })
+        .collect::<Vec<Vec<String>>>();
         
-        row
-            .iter()
-            .enumerate()
-            .map(|(i, item)| {
-                let padding = self.config.spacing_length + max_lengths[i];
-                write!(writer, "{:width$}", item, width = padding)
-            })
-            .collect::<Result<Vec<_>, io::Error>>()?;
+    // dbg!("{:?}", &string_rows);
 
-        write!(writer, "\n")?;
+    let max_lengths = max_lengths(&x2da_file, &string_rows);
+    let columns = x2da_file.columns.as_ref().unwrap();
+    let header = x2da_file.header.as_ref().unwrap();
 
-        Ok(())
-    }
+    write_header(&mut writer, header)?;
+    write_columns(&mut writer, &config, columns, &max_lengths)?;
 
-    fn write_columns<F: Write>(
-        &self,
-        writer: &mut F,
-        max_lengths: &Vec<usize>
-    )
-        -> Result<(), io::Error>
-    {
-        write!(writer, "{:<width$}", "", width = self.config.spacing_length + 1)?;
-        
-        self.columns
-            .as_ref()
-            .unwrap()
-            .iter()
-            .enumerate()
-            .map(|(i, col)| {
-                let padding = self.config.spacing_length + max_lengths[i];
-                write!(writer, "{:width$}", col, width = padding)
-            })
-            .collect::<Result<Vec<_>, io::Error>>()?;
+    string_rows
+        .iter()
+        .enumerate()
+        .map(|(idx, row)| {
+            write_row(&mut writer, &config, &max_lengths, idx, row)
+        })
+        .collect::<Result<Vec<_>, io::Error>>()?;
 
-        write!(writer, "\n")?;
+    // dbg!("{:?}", max_lengths);
 
-        Ok(())
-    }
-
-    fn write_header<F: Write>(&self, writer: &mut F)
-        -> Result<(), io::Error>
-    {
-        write!(
-            writer,
-            "{}{}\n\n",
-            self.header.file_type.as_str_ref(),
-            self.header.version.as_str_ref()
-        )?;
-
-        Ok(())
-    }
-
-    fn max_lengths(&self, string_rows: &Vec<Vec<String>>) -> Vec<usize>
-    {
-        (0..T::SIZE)
-            .into_iter()
-            .map(|i| {
-                string_rows
-                    .iter()
-                    .fold(0, |state, row| {
-                        match row[i].len() {
-                            l if l > state => l,
-                            _ => state,
-                        }
-                    })
-                    .max(self.columns.as_ref().unwrap()[i].len())
-            })
-            .collect()
-    }
+    Ok(())
 }
 
-#[derive(Debug)]
-struct X2daBuilderConfig
+
+fn write_row<F>(
+    writer: &mut F,
+    config: &X2daBuilderConfig,
+    max_lengths: &Vec<usize>,
+    idx: usize,
+    row: &Vec<String>
+)
+    -> Result<(), io::Error>
+    where F: Write
 {
-    spacing_length: usize,
+    let spacing = config.spacing_length;
+    write!(writer, "{:<width$}", idx, width = spacing + 1)?;
+    
+    row
+        .iter()
+        .enumerate()
+        .map(|(i, item)| {
+            let padding = spacing + max_lengths[i];
+            write!(writer, "{:width$}", item, width = padding)
+        })
+        .collect::<Result<Vec<_>, io::Error>>()?;
+
+    write!(writer, "\n")?;
+
+    Ok(())
 }
 
-impl Default for X2daBuilderConfig
+fn write_columns<F>(
+    writer: &mut F,
+    config: &X2daBuilderConfig,
+    columns: &Vec<String>,
+    max_lengths: &Vec<usize>
+)
+    -> Result<(), io::Error>
+    where F: Write
 {
-    fn default() -> Self
-    {
-        X2daBuilderConfig {
-            spacing_length: 4
-        }
-    }
+    write!(writer, "{:<width$}", "", width = config.spacing_length + 1)?;
+    
+    columns
+        .iter()
+        .enumerate()
+        .map(|(i, col)| {
+            let padding = config.spacing_length + max_lengths[i];
+            write!(writer, "{:width$}", col, width = padding)
+        })
+        .collect::<Result<Vec<_>, io::Error>>()?;
+
+    write!(writer, "\n")?;
+
+    Ok(())
 }
 
-impl<T: X2daRow> From<X2daFile<T>> for X2daBuilder<T>
+fn write_header<F>( writer: &mut F, header: &X2daHeader)
+    -> Result<(), io::Error>
+    where F: Write,
 {
-    fn from(file: X2daFile<T>)
-        -> Self
-    {
-        let X2daFile {
-            rows,
-            columns,
-            header
-        } = file;
-        
-        X2daBuilder {
-            config: X2daBuilderConfig::default(),
-            rows: rows,
-            columns: Some(columns),
-            header: header,
-        }
-    }
+    write!(
+        writer,
+        "{}{}\n\n",
+        header.file_type.as_str_ref(),
+        header.version.as_str_ref()
+    )?;
+
+    Ok(())
 }
 
+fn max_lengths<T>(
+    x2da_file: &X2daFile<T>,
+    string_rows: &Vec<Vec<String>>
+)
+    -> Vec<usize>
+    where T: X2daRow
+{
+    (0..T::SIZE)
+        .into_iter()
+        .map(|i| {
+            string_rows
+                .iter()
+                .fold(0, |state, row| {
+                    match row[i].len() {
+                        l if l > state => l,
+                        _ => state,
+                    }
+                })
+                .max(x2da_file.columns.as_ref().unwrap()[i].len())
+        })
+        .collect()
+}
 
 #[cfg(test)]
 mod test
@@ -269,7 +215,7 @@ mod test
             String::from("dah"),
         ];
 
-        let e = X2daBuilder::<Sample2da>::new()
+        let e = X2daFile::<Sample2da>::new()
             .set_columns(cols)
             .unwrap_err();
 
@@ -284,7 +230,7 @@ mod test
             String::from("Cah3"),
         ];
 
-        let e = X2daBuilder::<Sample2da>::new()
+        let e = X2daFile::<Sample2da>::new()
             .set_columns(cols)
             .unwrap_err();
 
@@ -299,7 +245,7 @@ mod test
             a_f32: Some(0.0),
         };
 
-        let e = X2daBuilder::new()
+        let e = X2daFile::new()
             .add_row(my_2da_row)
             .unwrap_err();
 
@@ -312,7 +258,7 @@ mod test
         
         let mut rows = x2da_sample_rows();
 
-        let e = X2daBuilder::new()
+        let e = X2daFile::new()
             .add_row(rows.remove(0))
             .unwrap()
             .add_row(rows.remove(0))
@@ -323,7 +269,7 @@ mod test
             .unwrap_err();
 
         match e {
-            MyError::X2daError(X2daError::X2daBuildWithoutColumns) => assert!(true),
+            MyError::X2daError(X2daError::X2daWriteWithoutColumns) => assert!(true),
             _ => assert!(false),
         }
     }
@@ -356,7 +302,7 @@ r#"
         a_f32: None,
     };
 
-    X2daBuilder::new()
+    X2daFile::new()
         .set_columns(cols)
         .unwrap()
         .add_row(rows.remove(0))
@@ -396,7 +342,7 @@ r#"
 
         let mut rows = x2da_sample_rows();
 
-        X2daBuilder::new()
+        X2daFile::new()
             .set_columns(cols)
             .unwrap()
             .add_row(rows.remove(0))

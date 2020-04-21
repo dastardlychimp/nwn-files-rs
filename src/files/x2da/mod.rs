@@ -1,6 +1,7 @@
 pub(crate) mod types;
 pub mod writer;
 pub mod parser;
+pub mod x2da_file;
 mod regex_parser;
 
 

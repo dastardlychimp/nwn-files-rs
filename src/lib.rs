@@ -10,7 +10,7 @@ pub use bif::parse as parse_bif;
 
 pub use ssf::ssf_file::SsfFile;
 pub use ssf::writer::SsfBuilder;
-pub use x2da::writer::X2daBuilder;
+pub use x2da::x2da_file::X2daFile;
 pub use key::{BifFile, BifResource};
 pub use bif::BifFile2;
 pub use tlk::tlk_file::TlkFile;
