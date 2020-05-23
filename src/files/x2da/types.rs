@@ -167,7 +167,7 @@ impl X2daColumns {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct X2daHeader {
     pub version: Version,
     pub file_type: FileType,

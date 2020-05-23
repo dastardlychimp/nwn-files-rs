@@ -1,7 +1,7 @@
 use std::convert::{TryFrom, From};
 use std::str::Utf8Error;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Version {
     Unknown,
     V1,

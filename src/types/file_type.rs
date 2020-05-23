@@ -1,6 +1,6 @@
 use std::convert::From;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum FileType {
     Unknown,
     Key,

@@ -15,7 +15,7 @@ use super::types::{
     X2daColumns,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct X2daFile<T>
     where T: X2daRow
 {
